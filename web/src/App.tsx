@@ -2,27 +2,7 @@ import "./App.css";
 import { css } from "@emotion/react";
 import { useState } from "react";
 import { SelectFiles } from "./components/SelectFiles";
-
-const Thumbnail = ({ blob, alt }: { blob: Blob; alt: string }) => {
-  const src = URL.createObjectURL(blob);
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      css={css`
-        width: 100%;
-        aspect-ratio: 1;
-        background-color: #eee;
-        border-radius: 8px;
-        object-fit: cover;
-      `}
-      onLoad={() => {
-        URL.revokeObjectURL(src);
-      }}
-    />
-  );
-};
+import { Thumbnail } from "./components/Thumbnail";
 
 function App() {
   const [images, setImages] = useState<File[]>([]);
