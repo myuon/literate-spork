@@ -3,8 +3,29 @@ import { css } from "@emotion/react";
 import { useState } from "react";
 import { SelectFiles } from "./components/SelectFiles";
 
+const Thumbnail = ({ blob, alt }: { blob: Blob; alt: string }) => {
+  const src = URL.createObjectURL(blob);
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      css={css`
+        width: 100%;
+        aspect-ratio: 1;
+        background-color: #eee;
+        border-radius: 8px;
+        object-fit: cover;
+      `}
+      onLoad={() => {
+        URL.revokeObjectURL(src);
+      }}
+    />
+  );
+};
+
 function App() {
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<File[]>([]);
 
   return (
     <div
@@ -16,18 +37,7 @@ function App() {
     >
       <SelectFiles
         onChange={(files) => {
-          const reader = new FileReader();
-
-          files.forEach((file) => {
-            reader.addEventListener("load", (event) => {
-              const result = event.target?.result;
-              if (result) {
-                setImages((images) => [...images, result as string]);
-              }
-            });
-            reader.readAsDataURL(file);
-          });
-          console.log(files);
+          setImages((prev) => [...prev, ...files]);
         }}
       />
 
@@ -40,16 +50,7 @@ function App() {
       >
         {images.map((image, index) => (
           <div key={index}>
-            <img
-              src={image}
-              alt={`${index}`}
-              css={css`
-                width: 100%;
-                aspect-ratio: 1;
-                border-radius: 8px;
-                object-fit: cover;
-              `}
-            />
+            <Thumbnail blob={image} alt={`${index}`} />
           </div>
         ))}
       </div>
