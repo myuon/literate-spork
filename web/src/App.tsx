@@ -1,28 +1,16 @@
 import "./App.css";
 import { css } from "@emotion/react";
-import { useRef, useState } from "react";
+import { PropsWithChildren, useRef, useState } from "react";
 
-const DropArea = ({ onChange }: { onChange: () => void }) => {
+const DropArea = ({
+  onDrop,
+  children,
+}: PropsWithChildren<{ onDrop: (files: FileList) => void }>) => {
   const [isDragging, setIsDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
-      <input
-        type="file"
-        multiple
-        accept="image/*"
-        css={css`
-          display: none;
-        `}
-        ref={inputRef}
-        onChange={() => {
-          onChange();
-        }}
-      />
       <div
-        role="button"
-        tabIndex={0}
         data-dragging={isDragging}
         css={[
           css`
@@ -40,12 +28,6 @@ const DropArea = ({ onChange }: { onChange: () => void }) => {
             }
           `,
         ]}
-        onClick={() => {
-          inputRef.current?.click();
-        }}
-        onKeyDown={() => {
-          inputRef.current?.click();
-        }}
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -57,12 +39,52 @@ const DropArea = ({ onChange }: { onChange: () => void }) => {
         onDrop={(event) => {
           event.preventDefault();
           setIsDragging(false);
-          onChange();
+          onDrop(event.dataTransfer.files);
         }}
       >
-        Drop files here OR click to select files
+        {children}
       </div>
     </>
+  );
+};
+
+const SelectFiles = ({ onChange }: { onChange: (files: File[]) => void }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => {
+        inputRef.current?.click();
+      }}
+      onKeyDown={() => {
+        inputRef.current?.click();
+      }}
+    >
+      <input
+        type="file"
+        multiple
+        accept="image/*"
+        css={css`
+          display: none;
+        `}
+        ref={inputRef}
+        onChange={(event) => {
+          event.preventDefault();
+          onChange(Array.from(event.currentTarget.files ?? []));
+        }}
+      />
+      <DropArea
+        onDrop={(files) => {
+          onChange(
+            Array.from(files).filter((f) => f.type.startsWith("image/"))
+          );
+        }}
+      >
+        Drop files here OR click here to select files
+      </DropArea>
+    </div>
   );
 };
 
@@ -80,23 +102,11 @@ const styles = {
 function App() {
   return (
     <div className="App">
-      <DropArea
-        onChange={() => {
-          console.log("change");
+      <SelectFiles
+        onChange={(files) => {
+          console.log(files);
         }}
       />
-      <button
-        css={[
-          styles.resetButton,
-          css`
-            padding: 8px 16px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-          `,
-        ]}
-      >
-        SELECT FILES
-      </button>
     </div>
   );
 }
