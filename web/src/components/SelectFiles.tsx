@@ -18,11 +18,12 @@ const DropArea = ({
             min-height: 160px;
             color: rgba(0, 0, 0, 0.6);
             cursor: pointer;
-            border: 2px dashed rgba(0, 0, 0, 0.2);
+            border: 2px dashed #ddd;
             border-radius: 8px;
           `,
           css`
             &[data-dragging="true"] {
+              background-color: #e9e9e9;
               border-color: rgba(0, 0, 0, 0.6);
             }
           `,

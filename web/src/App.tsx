@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useState } from "react";
 import { SelectFiles } from "./components/SelectFiles";
 import { Thumbnail } from "./components/Thumbnail";
+import { Button } from "./components/Button";
 
 function App() {
   const [images, setImages] = useState<File[]>([]);
@@ -33,6 +34,15 @@ function App() {
             <Thumbnail blob={image} alt={`${index}`} />
           </div>
         ))}
+      </div>
+
+      <div
+        css={css`
+          display: flex;
+          justify-content: flex-end;
+        `}
+      >
+        <Button>Submit</Button>
       </div>
     </div>
   );
