@@ -16,7 +16,7 @@ const upload = async (file: File) => {
 const SEMAPHORE_SIZE = 3;
 
 function App() {
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<{ file: File; status: string }[]>([]);
 
   const [uploadTaskQueue, setUploadTaskQueue] = useState<number[]>([]);
   const isUploading = uploadTaskQueue.length > 0;
@@ -41,7 +41,7 @@ function App() {
       newImages[task].status = "uploading";
       return newImages;
     });
-    await upload(images[task]);
+    await upload(images[task].file);
     setImages((images) => {
       const newImages = [...images];
       newImages[task].status = "completed";
@@ -66,7 +66,13 @@ function App() {
     >
       <SelectFiles
         onChange={(files) => {
-          setImages((prev) => [...prev, ...files]);
+          setImages((prev) => [
+            ...prev,
+            ...files.map((file) => ({
+              file,
+              status: "added",
+            })),
+          ]);
         }}
       />
 
@@ -80,7 +86,7 @@ function App() {
         {images.map((image, index) => (
           <div key={index}>
             <Thumbnail
-              blob={image}
+              blob={image.file}
               alt={`${index}`}
               uploading={image.status === "uploading"}
               completed={image.status === "completed"}
