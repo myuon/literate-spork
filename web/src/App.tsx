@@ -5,24 +5,31 @@ import { SelectFiles } from "./components/SelectFiles";
 import { Thumbnail } from "./components/Thumbnail";
 import { Button } from "./components/Button";
 
-const sleep = async (ms: number) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
-const upload = async (file: File) => {
-  return fetch(`/api/upload/${encodeURIComponent(file.name)}`, {
-    method: "POST",
-    body: file,
-    headers: {
-      "Content-Type": "application/octet-stream",
-    },
+const upload = async (file: File, onProgress?: (value: number) => void) => {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/upload/${encodeURIComponent(file.name)}`);
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (event) => {
+      onProgress?.(event.loaded / event.total);
+    };
+    xhr.onload = () => {
+      onProgress?.(1);
+      resolve();
+    };
+    xhr.onerror = () => {
+      reject();
+    };
+    xhr.send(file);
   });
 };
 
 const SEMAPHORE_SIZE = 3;
 
 function App() {
-  const [images, setImages] = useState<{ file: File; status: string }[]>([]);
+  const [images, setImages] = useState<
+    { file: File; status: string; uploadProgress: number }[]
+  >([]);
 
   const [uploadTaskQueue, setUploadTaskQueue] = useState<number[]>([]);
   const isUploading = uploadTaskQueue.length > 0;
@@ -47,7 +54,15 @@ function App() {
       newImages[task].status = "uploading";
       return newImages;
     });
-    await upload(images[task].file);
+
+    await upload(images[task].file, (value) => {
+      setImages((images) => {
+        const newImages = [...images];
+        newImages[task].uploadProgress = value;
+        return newImages;
+      });
+    });
+
     setImages((images) => {
       const newImages = [...images];
       newImages[task].status = "completed";
@@ -77,6 +92,7 @@ function App() {
             ...files.map((file) => ({
               file,
               status: "added",
+              uploadProgress: 0,
             })),
           ]);
         }}
@@ -95,6 +111,7 @@ function App() {
               blob={image.file}
               alt={`${index}`}
               uploading={image.status === "uploading"}
+              uploadProgress={image.uploadProgress}
               completed={image.status === "completed"}
             />
           </div>
