@@ -1,7 +1,6 @@
-import koaBody from "koa-body";
 import Router, { IRouterOptions } from "koa-router";
-import { z } from "zod";
-import { schemaForType } from "./helper/zod";
+import fs from "fs";
+import path from "path";
 
 export const newRouter = (options?: IRouterOptions) => {
   const router = new Router(options);
@@ -9,23 +8,21 @@ export const newRouter = (options?: IRouterOptions) => {
   router.get("/hello", async (ctx) => {
     ctx.body = "Hello World!";
   });
-  router.post("/echo", koaBody(), async (ctx) => {
-    interface EchoInput {
-      message: string;
-    }
+  router.post("/upload/:filename", async (ctx) => {
+    const { filename } = ctx.params;
 
-    const schema = schemaForType<EchoInput>()(
-      z.object({
-        message: z.string(),
-      })
-    );
-    const result = schema.safeParse(ctx.request.body);
-    if (!result.success) {
-      ctx.throw(400, result.error);
-      return;
-    }
+    await new Promise((resolve) => {
+      ctx.req.pipe(
+        fs.createWriteStream(
+          path.resolve(__dirname, "..", `./uploads/${filename}`)
+        )
+      );
+      ctx.req.on("end", () => {
+        resolve(true);
+      });
+    });
 
-    ctx.body = result.data.message;
+    ctx.body = "OK";
   });
 
   return router;

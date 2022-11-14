@@ -10,7 +10,13 @@ const sleep = async (ms: number) => {
 };
 
 const upload = async (file: File) => {
-  return sleep(Math.random() * 8000);
+  return fetch(`/api/upload/${encodeURIComponent(file.name)}`, {
+    method: "POST",
+    body: file,
+    headers: {
+      "Content-Type": "application/octet-stream",
+    },
+  });
 };
 
 const SEMAPHORE_SIZE = 3;
