@@ -9,7 +9,7 @@ export const useTaskQueue = (options_: { semaphoreSize: number }) => {
     queue: [],
     semaphore: 0,
   });
-  const isRunning = taskQueue.queue.length > 0;
+  const isRunning = taskQueue.queue.length > 0 || taskQueue.semaphore > 0;
   const promise = useRef<(index: number) => Promise<void>>();
   const options = useRef(options_);
 
