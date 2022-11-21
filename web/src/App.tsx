@@ -1,9 +1,10 @@
 import "./App.css";
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { SelectFiles } from "./components/SelectFiles";
 import { Thumbnail } from "./components/Thumbnail";
 import { Button } from "./components/Button";
+import { useTaskQueue } from "./components/useTaskQueue";
 
 const upload = async (file: File, onProgress?: (value: number) => void) => {
   return new Promise<void>((resolve, reject) => {
@@ -24,58 +25,11 @@ const upload = async (file: File, onProgress?: (value: number) => void) => {
   });
 };
 
-const SEMAPHORE_SIZE = 3;
-
 function App() {
   const [images, setImages] = useState<
     { file: File; status: string; uploadProgress: number }[]
   >([]);
-
-  const [uploadTaskQueue, setUploadTaskQueue] = useState<number[]>([]);
-  const isUploading = uploadTaskQueue.length > 0;
-  const [semaphore, setSemaphore] = useState(0);
-
-  const startUpload = async (tasks: number[]) => {
-    setUploadTaskQueue(tasks);
-  };
-  const runQueue = useCallback(async () => {
-    if (uploadTaskQueue.length === 0) {
-      return;
-    }
-    if (semaphore >= SEMAPHORE_SIZE) {
-      return;
-    }
-
-    const [task, ...rest] = uploadTaskQueue;
-    setUploadTaskQueue(rest);
-    setSemaphore((p) => p + 1);
-    setImages((images) => {
-      const newImages = [...images];
-      newImages[task].status = "uploading";
-      return newImages;
-    });
-
-    await upload(images[task].file, (value) => {
-      setImages((images) => {
-        const newImages = [...images];
-        newImages[task].uploadProgress = value;
-        return newImages;
-      });
-    });
-
-    setImages((images) => {
-      const newImages = [...images];
-      newImages[task].status = "completed";
-      return newImages;
-    });
-    setSemaphore((p) => p - 1);
-  }, [images, semaphore, uploadTaskQueue]);
-
-  useEffect(() => {
-    if (isUploading) {
-      runQueue();
-    }
-  }, [isUploading, runQueue]);
+  const { start, isRunning } = useTaskQueue({ semaphoreSize: 3 });
 
   return (
     <div
@@ -125,12 +79,35 @@ function App() {
         `}
       >
         <Button
-          disabled={isUploading}
+          disabled={isRunning}
           onClick={async () => {
-            startUpload(images.map((_, index) => index));
+            start(
+              images.map(() => false),
+              async (index: number) => {
+                setImages((images) => {
+                  const newImages = [...images];
+                  newImages[index].status = "uploading";
+                  return newImages;
+                });
+
+                await upload(images[index].file, (value) => {
+                  setImages((images) => {
+                    const newImages = [...images];
+                    newImages[index].uploadProgress = value;
+                    return newImages;
+                  });
+                });
+
+                setImages((images) => {
+                  const newImages = [...images];
+                  newImages[index].status = "completed";
+                  return newImages;
+                });
+              }
+            );
           }}
         >
-          Upload
+          {isRunning ? "Uploading..." : "Upload"}
         </Button>
       </div>
     </div>
