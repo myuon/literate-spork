@@ -2,8 +2,9 @@ import { css } from "@emotion/react";
 
 const Loading = ({ progress }: { progress: number }) => {
   const r = 45;
-  const x = 50 + r * Math.sin(progress * 2 * Math.PI);
-  const y = 50 - r * Math.cos(progress * 2 * Math.PI);
+  // It's hard to draw the perfect circle with path
+  const x = 50 + r * Math.sin(1.999 * Math.PI);
+  const y = 50 - r * Math.cos(1.999 * Math.PI);
 
   return (
     <svg viewBox="0 0 100 100">
@@ -16,10 +17,15 @@ const Loading = ({ progress }: { progress: number }) => {
         strokeWidth="3"
       />
       <path
-        d={`M 50 5 A 45 45 0 ${progress >= 0.5 ? 1 : 0} 1 ${x} ${y}`}
+        d={`M 50 5 A 45 45 0 1 1 ${x} ${y}`}
         fill="none"
         stroke="white"
         strokeWidth="3"
+        css={css`
+          stroke-dasharray: ${r * 2 * Math.PI};
+          stroke-dashoffset: ${r * 2 * Math.PI * (1 - progress)};
+          transition: all 0.3s linear;
+        `}
       />
     </svg>
   );
