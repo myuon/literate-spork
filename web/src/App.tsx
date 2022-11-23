@@ -25,10 +25,22 @@ const upload = async (file: File, onProgress?: (value: number) => void) => {
   });
 };
 
+interface Image {
+  file: File;
+  status: string;
+  uploadProgress: number;
+}
+
 function App() {
-  const [images, setImages] = useState<
-    { file: File; status: string; uploadProgress: number }[]
-  >([]);
+  const [images, setImages] = useState<Image[]>([]);
+  const updateImage = (index: number, updater: (image: Image) => Image) => {
+    setImages((prev) => {
+      const next = [...prev];
+      next[index] = updater(next[index]);
+      return next;
+    });
+  };
+
   const { start, isRunning } = useTaskQueue({ semaphoreSize: 3 });
 
   return (
@@ -84,24 +96,21 @@ function App() {
             start(
               images.map(() => false),
               async (index: number) => {
-                setImages((images) => {
-                  const newImages = [...images];
-                  newImages[index].status = "uploading";
-                  return newImages;
+                updateImage(index, (image: Image) => {
+                  image.status = "uploading";
+                  return image;
                 });
 
                 await upload(images[index].file, (value) => {
-                  setImages((images) => {
-                    const newImages = [...images];
-                    newImages[index].uploadProgress = value;
-                    return newImages;
+                  updateImage(index, (image: Image) => {
+                    image.uploadProgress = value;
+                    return image;
                   });
                 });
 
-                setImages((images) => {
-                  const newImages = [...images];
-                  newImages[index].status = "completed";
-                  return newImages;
+                updateImage(index, (image: Image) => {
+                  image.status = "completed";
+                  return image;
                 });
               }
             );
