@@ -1,14 +1,17 @@
 import "./App.css";
 import { css } from "@emotion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SelectFiles } from "./components/SelectFiles";
 import { Thumbnail } from "./components/Thumbnail";
 import { Button } from "./components/Button";
 import { useTaskQueue } from "./components/useTaskQueue";
 
-const upload = async (file: File, onProgress?: (value: number) => void) => {
+const upload = async (
+  xhr: XMLHttpRequest,
+  file: File,
+  onProgress?: (value: number) => void
+) => {
   return new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/upload/${encodeURIComponent(file.name)}`);
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
     xhr.upload.onprogress = (event) => {
@@ -41,7 +44,10 @@ function App() {
     });
   };
 
-  const { start, isRunning } = useTaskQueue({ semaphoreSize: 3 });
+  const xhrInProgress = useRef<Record<number, XMLHttpRequest>>({});
+  const { start, isRunning, clearTaskQueue } = useTaskQueue({
+    semaphoreSize: 3,
+  });
 
   return (
     <div
@@ -87,26 +93,46 @@ function App() {
       <div
         css={css`
           display: flex;
+          gap: 16px;
           justify-content: flex-end;
         `}
       >
+        {isRunning && (
+          <Button
+            onClick={async () => {
+              clearTaskQueue();
+              Object.values(xhrInProgress.current).forEach((xhr) => {
+                xhr.abort();
+              });
+              xhrInProgress.current = {};
+            }}
+          >
+            Abort
+          </Button>
+        )}
         <Button
           disabled={isRunning}
           onClick={async () => {
             start(
               images.map(() => false),
               async (index: number) => {
+                const xhr = new XMLHttpRequest();
+
                 updateImage(index, (image: Image) => {
                   image.status = "uploading";
                   return image;
                 });
 
-                await upload(images[index].file, (value) => {
+                xhrInProgress.current[index] = xhr;
+
+                await upload(xhr, images[index].file, (value) => {
                   updateImage(index, (image: Image) => {
                     image.uploadProgress = value;
                     return image;
                   });
                 });
+
+                delete xhrInProgress.current[index];
 
                 updateImage(index, (image: Image) => {
                   image.status = "completed";

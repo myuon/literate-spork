@@ -66,5 +66,11 @@ export const useTaskQueue = (options_: { semaphoreSize: number }) => {
     },
     finished,
     isRunning,
+    clearTaskQueue: () => {
+      setTaskQueue({
+        queue: [],
+        semaphore: 0,
+      });
+    },
   };
 };
