@@ -100,11 +100,15 @@ function App() {
         {isRunning && (
           <Button
             onClick={async () => {
-              clearTaskQueue();
-              Object.values(xhrInProgress.current).forEach((xhr) => {
+              Object.entries(xhrInProgress.current).forEach(([index, xhr]) => {
                 xhr.abort();
+                updateImage(Number(index), (image) => {
+                  image.status = "added";
+                  return image;
+                });
               });
               xhrInProgress.current = {};
+              clearTaskQueue();
             }}
           >
             Abort
