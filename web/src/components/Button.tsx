@@ -1,7 +1,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 
-const resetButtonStyle = css`
+export const resetButtonStyle = css`
   padding: 0;
   font-family: inherit;
   font-size: inherit;

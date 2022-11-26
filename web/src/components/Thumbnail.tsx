@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import { resetButtonStyle } from "./Button";
 
 const Loading = ({ progress }: { progress: number }) => {
   const r = 45;
@@ -37,12 +38,14 @@ export const Thumbnail = ({
   uploading,
   completed,
   uploadProgress,
+  onDelete,
 }: {
   blob: Blob;
   alt: string;
   uploading?: boolean;
   completed?: boolean;
   uploadProgress?: number;
+  onDelete: () => void;
 }) => {
   const src = URL.createObjectURL(blob);
 
@@ -50,6 +53,10 @@ export const Thumbnail = ({
     <div
       css={css`
         position: relative;
+
+        &:hover .hover-overlay {
+          display: grid;
+        }
       `}
     >
       <img
@@ -91,12 +98,37 @@ export const Thumbnail = ({
           </div>
         </div>
       ) : null}
+      {!uploading || completed ? (
+        <div
+          className="hover-overlay"
+          css={css`
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: none;
+            font-size: 24px;
+          `}
+        >
+          <button
+            css={[
+              resetButtonStyle,
+              css`
+                line-height: 1;
+                color: white;
+              `,
+            ]}
+            onClick={onDelete}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       {completed ? (
         <div
           css={css`
             position: absolute;
             top: 8px;
-            right: 8px;
+            left: 8px;
             color: white;
           `}
         >

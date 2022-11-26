@@ -85,6 +85,11 @@ function App() {
               uploading={image.status === "uploading"}
               uploadProgress={image.uploadProgress}
               completed={image.status === "completed"}
+              onDelete={() => {
+                if (image.status === "added") {
+                  setImages((prev) => prev.filter((_, i) => i !== index));
+                }
+              }}
             />
           </div>
         ))}
