@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const useTaskQueue = (options_: { semaphoreSize: number }) => {
-  const [finished, setFinished] = useState<boolean[]>([]);
+  const [finished, setFinished] = useState<Record<string, boolean>>({});
   const [taskQueue, setTaskQueue] = useState<{
-    queue: number[];
+    queue: string[];
     semaphore: number;
   }>({
     queue: [],
     semaphore: 0,
   });
   const isRunning = taskQueue.queue.length > 0 || taskQueue.semaphore > 0;
-  const promise = useRef<(index: number) => Promise<void>>();
+  const promise = useRef<(id: string) => Promise<void>>();
   const options = useRef(options_);
 
   const runQueue = useCallback(async () => {
@@ -29,7 +29,7 @@ export const useTaskQueue = (options_: { semaphoreSize: number }) => {
       };
     });
     setFinished((prev) => {
-      const current = [...prev];
+      const current = { ...prev };
       current[task] = false;
       return current;
     });
@@ -37,7 +37,7 @@ export const useTaskQueue = (options_: { semaphoreSize: number }) => {
     await promise.current?.(task);
 
     setFinished((prev) => {
-      const current = [...prev];
+      const current = { ...prev };
       current[task] = true;
       return current;
     });
@@ -56,10 +56,10 @@ export const useTaskQueue = (options_: { semaphoreSize: number }) => {
   }, [isRunning, runQueue]);
 
   return {
-    start: (tasks: boolean[], do_: (index: number) => Promise<void>) => {
-      setFinished(tasks);
+    start: (taskIds: string[], do_: (id: string) => Promise<void>) => {
+      setFinished(Object.fromEntries(taskIds.map((t) => [t, false])));
       setTaskQueue({
-        queue: tasks.map((_, i) => i),
+        queue: taskIds,
         semaphore: 0,
       });
       promise.current = do_;

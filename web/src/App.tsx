@@ -28,23 +28,28 @@ const upload = async (
   });
 };
 
+const genId = () => {
+  return `${new Date().getTime()}-${Math.random().toFixed(5)}`;
+};
+
 interface Image {
+  id: string;
   file: File;
   status: string;
   uploadProgress: number;
 }
 
 function App() {
-  const [images, setImages] = useState<Image[]>([]);
-  const updateImage = (index: number, updater: (image: Image) => Image) => {
+  const [images, setImages] = useState<Record<string, Image>>({});
+  const updateImage = (id: string, updater: (image: Image) => Image) => {
     setImages((prev) => {
-      const next = [...prev];
-      next[index] = updater(next[index]);
+      const next = { ...prev };
+      next[id] = updater(next[id]);
       return next;
     });
   };
 
-  const xhrInProgress = useRef<Record<number, XMLHttpRequest>>({});
+  const xhrInProgress = useRef<Record<string, XMLHttpRequest>>({});
   const { start, isRunning, clearTaskQueue } = useTaskQueue({
     semaphoreSize: 3,
   });
@@ -59,14 +64,17 @@ function App() {
     >
       <SelectFiles
         onChange={(files) => {
-          setImages((prev) => [
+          const images = files.map((file) => ({
+            id: genId(),
+            file,
+            status: "added",
+            uploadProgress: 0,
+          }));
+
+          setImages((prev) => ({
             ...prev,
-            ...files.map((file) => ({
-              file,
-              status: "added",
-              uploadProgress: 0,
-            })),
-          ]);
+            ...Object.fromEntries(images.map((image) => [image.id, image])),
+          }));
         }}
       />
 
@@ -77,17 +85,21 @@ function App() {
           gap: 24px;
         `}
       >
-        {images.map((image, index) => (
-          <div key={index}>
+        {Object.values(images).map((image) => (
+          <div key={image.id}>
             <Thumbnail
               blob={image.file}
-              alt={`${index}`}
+              alt={`${image.id}`}
               uploading={image.status === "uploading"}
               uploadProgress={image.uploadProgress}
               completed={image.status === "completed"}
               onDelete={() => {
                 if (image.status === "added") {
-                  setImages((prev) => prev.filter((_, i) => i !== index));
+                  setImages((prev) =>
+                    Object.fromEntries(
+                      Object.entries(prev).filter(([, i]) => i.id !== image.id)
+                    )
+                  );
                 }
               }}
             />
@@ -105,9 +117,9 @@ function App() {
         {isRunning && (
           <Button
             onClick={async () => {
-              Object.entries(xhrInProgress.current).forEach(([index, xhr]) => {
+              Object.entries(xhrInProgress.current).forEach(([id, xhr]) => {
                 xhr.abort();
-                updateImage(Number(index), (image) => {
+                updateImage(id, (image) => {
                   image.status = "added";
                   return image;
                 });
@@ -123,27 +135,27 @@ function App() {
           disabled={isRunning}
           onClick={async () => {
             start(
-              images.map(() => false),
-              async (index: number) => {
+              Object.values(images).map((image) => image.id),
+              async (id: string) => {
                 const xhr = new XMLHttpRequest();
 
-                updateImage(index, (image: Image) => {
+                updateImage(id, (image: Image) => {
                   image.status = "uploading";
                   return image;
                 });
 
-                xhrInProgress.current[index] = xhr;
+                xhrInProgress.current[id] = xhr;
 
-                await upload(xhr, images[index].file, (value) => {
-                  updateImage(index, (image: Image) => {
+                await upload(xhr, images[id].file, (value) => {
+                  updateImage(id, (image: Image) => {
                     image.uploadProgress = value;
                     return image;
                   });
                 });
 
-                delete xhrInProgress.current[index];
+                delete xhrInProgress.current[id];
 
-                updateImage(index, (image: Image) => {
+                updateImage(id, (image: Image) => {
                   image.status = "completed";
                   return image;
                 });
